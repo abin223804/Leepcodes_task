@@ -1,20 +1,9 @@
-// import { DataTypes } from 'sequelize';
-
-// const CartItemModel = (sequelize) => {
-//   return sequelize.define('CartItem', {
-//     quantity: DataTypes.INTEGER
-//   });
-// };
-
-// export default CartItemModel;
-
-
-import { DataTypes } from 'sequelize';
+import {DataTypes} from "sequelize";
 
 const CartItemModel = (sequelize) => {
-  return sequelize.define('CartItem', {
-    quantity: DataTypes.INTEGER
-  });
+    return sequelize.define("CartItem", {
+        quantity: DataTypes.INTEGER,
+    });
 };
 
 export default CartItemModel;
