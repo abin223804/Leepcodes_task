@@ -17,6 +17,31 @@ router.post('/add', authenticate, authorize('user'), async (req, res) => {
   res.json({ message: 'Added to cart' });
 });
 
+
+router.post('/', authenticate, async (req, res) => {
+  const { productId, quantity } = req.body;
+  const userId = req.user.id;
+
+  if (!productId || !quantity) {
+    return res.status(400).json({ message: 'Product ID and quantity are required' });
+  }
+
+  try {
+    const existing = await Cart.findOne({ where: { userId, productId } });
+    if (existing) {
+      existing.quantity += quantity;
+      await existing.save();
+      return res.json({ message: 'Quantity updated' });
+    }
+
+    await Cart.create({ userId, productId, quantity });
+    res.status(201).json({ message: 'Added to cart' });
+  } catch (err) {
+    console.error('Cart Error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.put('/update', authenticate, authorize('user'), async (req, res) => {
   const { productId, quantity } = req.body;
   const cart = await Cart.findOne({ where: { UserId: req.user.id } });

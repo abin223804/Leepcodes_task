@@ -11,6 +11,8 @@ export default function Dashboard() {
   const [role, setRole] = useState('');
   const [showUserForm, setShowUserForm] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
+  const [cart, setCart] = useState([]);
+  const [quantities, setQuantities] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +31,17 @@ export default function Dashboard() {
 
     if (role === 'superadmin') {
       fetchUsers();
+    }
+
+    if (role === 'user') {
+      api.get('/cart').then((res) => {
+        setCart(res.data.Products || []);
+        const qtyMap = {};
+        (res.data.Products || []).forEach(item => {
+          qtyMap[item.id] = item.CartItem.quantity;
+        });
+        setQuantities(qtyMap);
+      });
     }
   }, [navigate, role]);
 
@@ -75,6 +88,39 @@ export default function Dashboard() {
       fetchUsers();
     } catch (err) {
       alert('Failed to create user');
+      console.error(err);
+    }
+  };
+
+  const addToCart = async (productId) => {
+    try {
+      await api.post('/cart/add', { productId, quantity: 1 });
+      const res = await api.get('/cart');
+      setCart(res.data.Products || []);
+    } catch (err) {
+      alert('Failed to add to cart');
+      console.error(err);
+    }
+  };
+
+  const updateCartItem = async (productId) => {
+    try {
+      await api.put('/cart/update', { productId, quantity: quantities[productId] });
+      const res = await api.get('/cart');
+      setCart(res.data.Products || []);
+    } catch (err) {
+      alert('Failed to update cart');
+      console.error(err);
+    }
+  };
+
+  const removeFromCart = async (productId) => {
+    try {
+      await api.delete(`/cart/remove/${productId}`);
+      const res = await api.get('/cart');
+      setCart(res.data.Products || []);
+    } catch (err) {
+      alert('Failed to remove item');
       console.error(err);
     }
   };
@@ -140,9 +186,46 @@ export default function Dashboard() {
                     Delete
                   </button>
                 )}
+                {role === 'user' && (
+                  <button onClick={() => addToCart(p.id)} style={{ ...buttonStyle, marginTop: '0.5rem' }}>
+                    Add to Cart
+                  </button>
+                )}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {role === 'user' && (
+        <div style={{ marginTop: '2rem' }}>
+          <h3>Your Cart</h3>
+          {Array.isArray(cart) && cart.length > 0 ? (
+            <ul>
+              {cart.map((item) => (
+                <li key={item.id} style={{ marginBottom: '1rem' }}>
+                    
+                    
+                  <strong>{item.name}</strong> – ₹{item.price} 
+                  <button onClick={() => removeFromCart(item.id)} style={deleteButtonStyle}>Remove</button>
+                  <br />
+                  
+                  <img src={item.imageUrl} alt={item.name} width="80" /> <br />
+                  Quantity:
+                  <input
+                    type="number"
+                    value={quantities[item.id] || item.CartItem.quantity}
+                    min="1"
+                    onChange={(e) => setQuantities({ ...quantities, [item.id]: parseInt(e.target.value) })}
+                    style={{ marginLeft: '0.5rem', width: '60px' }}
+                  />
+                  <button onClick={() => updateCartItem(item.id)} style={buttonStyle}>Update</button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Your cart is empty.</p>
+          )}
         </div>
       )}
 
@@ -153,7 +236,7 @@ export default function Dashboard() {
             <ul>
               {admins.map((u) => (
                 <li key={u.id}>
-                  {u.username} 
+                  {u.username} - <strong>{u.role}</strong>
                   <button onClick={() => handleDeleteUser(u.id)} style={deleteButtonStyle}>Delete</button>
                 </li>
               ))}
@@ -165,7 +248,7 @@ export default function Dashboard() {
             <ul>
               {normalUsers.map((u) => (
                 <li key={u.id}>
-                  {u.username}
+                  {u.username} - <strong>{u.role}</strong>
                   <button onClick={() => handleDeleteUser(u.id)} style={deleteButtonStyle}>Delete</button>
                 </li>
               ))}
